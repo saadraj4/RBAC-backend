@@ -1,14 +1,13 @@
-const { Router } = require("express");
-const authController = require("../controllers/authController");
-const authenticate = require("../middleware/authenticate");
-const validate = require("../middleware/validate");
-const {
+import { Router } from "express";
+import { authController } from "../controllers/index.js";
+import { authenticate, validate } from "../middleware/index.js";
+import {
   registerSchema,
   loginSchema,
   refreshSchema,
   logoutSchema,
-} = require("../validators/authValidator");
-const asyncHandler = require("../utils/asyncHandler");
+} from "../validators/index.js";
+import { asyncHandler } from "../utils/index.js";
 
 const router = Router();
 
@@ -38,4 +37,4 @@ router.post(
 
 router.get("/me", authenticate, asyncHandler(authController.me));
 
-module.exports = router;
+export default router;

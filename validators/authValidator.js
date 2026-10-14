@@ -1,6 +1,6 @@
-const { z } = require("zod");
+import { z } from "zod";
 
-const registerSchema = z.object({
+export const registerSchema = z.object({
   name: z
     .string({ required_error: "Name is required." })
     .trim()
@@ -15,7 +15,7 @@ const registerSchema = z.object({
   role: z.string().trim().optional().default("user"),
 });
 
-const loginSchema = z.object({
+export const loginSchema = z.object({
   email: z
     .string({ required_error: "Email is required." })
     .trim()
@@ -25,17 +25,17 @@ const loginSchema = z.object({
     .min(1, "Password is required."),
 });
 
-const refreshSchema = z.object({
+export const refreshSchema = z.object({
   refreshToken: z
     .string({ required_error: "Refresh token is required." })
     .min(1, "Refresh token is required."),
 });
 
-const logoutSchema = z.object({
+export const logoutSchema = z.object({
   refreshToken: z.string().optional(),
 });
 
-module.exports = {
+export default {
   registerSchema,
   loginSchema,
   refreshSchema,

@@ -7,7 +7,16 @@
  * @param {import('express').Response} res
  * @param {object} options - { data, message, statusCode, pagination, meta }
  */
-function sendSuccess(res, { data = null, message = "Success", statusCode = 200, pagination = null, meta = null } = {}) {
+export function sendSuccess(
+  res,
+  {
+    data = null,
+    message = "Success",
+    statusCode = 200,
+    pagination = null,
+    meta = null,
+  } = {}
+) {
   const body = { success: true, message };
   if (data !== null) body.data = data;
 
@@ -22,7 +31,10 @@ function sendSuccess(res, { data = null, message = "Success", statusCode = 200, 
  * @param {import('express').Response} res
  * @param {object} options - { message, statusCode, code }
  */
-function sendError(res, { message = "Something went wrong", statusCode = 500, code = null } = {}) {
+export function sendError(
+  res,
+  { message = "Something went wrong", statusCode = 500, code = null } = {}
+) {
   const body = { success: false, message };
   if (code) body.code = code;
   return res.status(statusCode).json(body);
@@ -35,7 +47,7 @@ function sendError(res, { message = "Something went wrong", statusCode = 500, co
  * @param {number} totalCount - total items in DB
  * @returns {{ skip: number, take: number, pagination: object, meta: object } | { skip: undefined, take: undefined, pagination: null, meta: null }}
  */
-function paginate(query, totalCount) {
+export function paginate(query, totalCount) {
   if (query.all === "true") {
     return { skip: undefined, take: undefined, pagination: null, meta: null };
   }
@@ -61,4 +73,8 @@ function paginate(query, totalCount) {
   };
 }
 
-module.exports = { sendSuccess, sendError, paginate };
+export default {
+  sendSuccess,
+  sendError,
+  paginate,
+};

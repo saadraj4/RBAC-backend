@@ -1,8 +1,8 @@
-const roleService = require("../services/roleService");
-const { sendSuccess, sendError, paginate } = require("../utils/response");
+import { roleService } from "../services/index.js";
+import { sendSuccess, sendError, paginate } from "../utils/index.js";
 
 /** GET /api/roles/get-all — list all roles (supports ?page=1&limit=10 or ?all=true) */
-async function getRoles(req, res) {
+export async function getRoles(req, res) {
   const totalCount = await roleService.countRoles();
   const { skip, take, pagination } = paginate(req.query, totalCount);
 
@@ -12,7 +12,7 @@ async function getRoles(req, res) {
 }
 
 /** GET /api/roles/get/:id — get single role by id */
-async function getRoleById(req, res) {
+export async function getRoleById(req, res) {
   const { id } = req.params;
 
   const role = await roleService.findRoleById(id);
@@ -24,7 +24,7 @@ async function getRoleById(req, res) {
 }
 
 /** POST /api/roles/create — create a new role */
-async function createRole(req, res) {
+export async function createRole(req, res) {
   const { name } = req.body;
   const normalized = name.toLowerCase().trim();
 
@@ -39,7 +39,7 @@ async function createRole(req, res) {
 }
 
 /** PUT /api/roles/update/:id — update role */
-async function updateRole(req, res) {
+export async function updateRole(req, res) {
   const { id } = req.params;
   const { name } = req.body;
 
@@ -63,7 +63,7 @@ async function updateRole(req, res) {
 }
 
 /** DELETE /api/roles/delete/:id — soft delete role */
-async function deleteRole(req, res) {
+export async function deleteRole(req, res) {
   const { id } = req.params;
 
   const role = await roleService.findRoleById(id);
@@ -78,7 +78,7 @@ async function deleteRole(req, res) {
   });
 }
 
-module.exports = {
+export default {
   getRoles,
   getRoleById,
   createRole,

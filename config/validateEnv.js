@@ -11,7 +11,7 @@ const REQUIRED_VARS = [
   "BCRYPT_SALT_ROUNDS",
 ];
 
-function validateEnv() {
+export default function validateEnv() {
   const missing = REQUIRED_VARS.filter((key) => !process.env[key]);
   if (missing.length > 0) {
     console.error(
@@ -20,5 +20,3 @@ function validateEnv() {
     process.exit(1);
   }
 }
-
-module.exports = validateEnv;

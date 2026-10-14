@@ -1,14 +1,13 @@
-const { Router } = require("express");
-const userController = require("../controllers/userController");
-const authenticate = require("../middleware/authenticate");
-const validate = require("../middleware/validate");
-const {
+import { Router } from "express";
+import { userController } from "../controllers/index.js";
+import { authenticate, validate } from "../middleware/index.js";
+import {
   createUserSchema,
   updateUserSchema,
   userStatusSchema,
   userIdParamSchema,
-} = require("../validators/userValidator");
-const asyncHandler = require("../utils/asyncHandler");
+} from "../validators/index.js";
+import { asyncHandler } from "../utils/index.js";
 
 const router = Router();
 
@@ -50,4 +49,4 @@ router.patch(
   asyncHandler(userController.updateUserStatus)
 );
 
-module.exports = router;
+export default router;

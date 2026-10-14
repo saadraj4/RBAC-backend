@@ -1,11 +1,11 @@
-const jwt = require("jsonwebtoken");
-const { sendError } = require("../utils/response");
+import jwt from "jsonwebtoken";
+import { sendError } from "../utils/index.js";
 
 /**
  * Authenticate middleware — verifies the access token from the Authorization header.
  * Sets req.user = { id, role: { id, name } } on success.
  */
-function authenticate(req, res, next) {
+export default function authenticate(req, res, next) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -40,5 +40,3 @@ function authenticate(req, res, next) {
     });
   }
 }
-
-module.exports = authenticate;

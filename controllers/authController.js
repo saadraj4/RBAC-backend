@@ -1,8 +1,8 @@
-const authService = require("../services/authService");
-const { sendSuccess, sendError } = require("../utils/response");
+import { authService } from "../services/index.js";
+import { sendSuccess, sendError } from "../utils/index.js";
 
 /** POST /api/auth/register */
-async function register(req, res) {
+export async function register(req, res) {
   const { name, email, password, role: roleName = "user" } = req.body;
 
   // Check role exists
@@ -36,7 +36,7 @@ async function register(req, res) {
 }
 
 /** POST /api/auth/login */
-async function login(req, res) {
+export async function login(req, res) {
   const { email, password } = req.body;
 
   const user = await authService.findUserByEmail(email.toLowerCase().trim());
@@ -70,7 +70,7 @@ async function login(req, res) {
 }
 
 /** POST /api/auth/refresh */
-async function refresh(req, res) {
+export async function refresh(req, res) {
   const { refreshToken } = req.body;
 
   // Verify JWT signature and expiry
@@ -129,7 +129,7 @@ async function refresh(req, res) {
 }
 
 /** POST /api/auth/logout */
-async function logout(req, res) {
+export async function logout(req, res) {
   const { refreshToken } = req.body;
 
   if (refreshToken) {
@@ -142,7 +142,7 @@ async function logout(req, res) {
 }
 
 /** GET /api/auth/me (protected) */
-async function me(req, res) {
+export async function me(req, res) {
   const user = await authService.findUserById(req.user.id);
   if (!user) {
     return sendError(res, { message: "User not found.", statusCode: 404 });
@@ -159,4 +159,4 @@ async function me(req, res) {
   });
 }
 
-module.exports = { register, login, refresh, logout, me };
+export default { register, login, refresh, logout, me };

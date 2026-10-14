@@ -1,16 +1,11 @@
-const { sendError } = require("../utils/response");
+import { sendError } from "../utils/index.js";
 
 /**
  * Reusable Zod validation middleware.
  * Supports passing a ZodSchema directly (defaults to validating req.body)
  * or passing an object specifying targets: { body, params, query }.
- *
- * Examples:
- *   validate(registerSchema)               // validates req.body
- *   validate(idParamSchema, "params")       // validates req.params
- *   validate({ body: schema, params: idSchema })
  */
-function validate(schema, source = "body") {
+export default function validate(schema, source = "body") {
   return (req, res, next) => {
     // 1. If schema is a Zod schema object with safeParse
     if (schema && typeof schema.safeParse === "function") {
@@ -55,5 +50,3 @@ function validate(schema, source = "body") {
     return next();
   };
 }
-
-module.exports = validate;

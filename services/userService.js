@@ -1,8 +1,8 @@
-const bcrypt = require("bcrypt");
-const prisma = require("../config/db");
+import bcrypt from "bcrypt";
+import prisma from "../config/db.js";
 
 // Reusable user select object (excludes passwordHash)
-const USER_PUBLIC_SELECT = {
+export const USER_PUBLIC_SELECT = {
   id: true,
   name: true,
   email: true,
@@ -19,7 +19,7 @@ const USER_PUBLIC_SELECT = {
 };
 
 /** Get users with pagination and active/deleted filtering */
-async function getUsers({ skip, take, includeDeleted = false, isActive } = {}) {
+export async function getUsers({ skip, take, includeDeleted = false, isActive } = {}) {
   const where = {};
   if (!includeDeleted) where.isDeleted = false;
   if (typeof isActive === "boolean") where.isActive = isActive;
@@ -39,7 +39,7 @@ async function getUsers({ skip, take, includeDeleted = false, isActive } = {}) {
 }
 
 /** Count total active users */
-async function countUsers({ includeDeleted = false, isActive } = {}) {
+export async function countUsers({ includeDeleted = false, isActive } = {}) {
   const where = {};
   if (!includeDeleted) where.isDeleted = false;
   if (typeof isActive === "boolean") where.isActive = isActive;
@@ -48,7 +48,7 @@ async function countUsers({ includeDeleted = false, isActive } = {}) {
 }
 
 /** Get single user by ID */
-async function getUserById(id, { includeDeleted = false } = {}) {
+export async function getUserById(id, { includeDeleted = false } = {}) {
   const numericId = parseInt(id, 10);
   if (isNaN(numericId)) return null;
 
@@ -63,7 +63,7 @@ async function getUserById(id, { includeDeleted = false } = {}) {
 }
 
 /** Find user by email */
-async function getUserByEmail(email, { includeDeleted = true } = {}) {
+export async function getUserByEmail(email, { includeDeleted = true } = {}) {
   const user = await prisma.user.findUnique({
     where: { email },
     include: { role: true },
@@ -75,7 +75,7 @@ async function getUserByEmail(email, { includeDeleted = true } = {}) {
 }
 
 /** Create a new user (with password hashing) */
-async function createUser({ name, email, password, roleId, isActive = true }) {
+export async function createUser({ name, email, password, roleId, isActive = true }) {
   const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS, 10) || 10;
   const passwordHash = await bcrypt.hash(password, saltRounds);
 
@@ -93,7 +93,7 @@ async function createUser({ name, email, password, roleId, isActive = true }) {
 }
 
 /** Update user details (name, roleId, isActive) */
-async function updateUser(id, updateData) {
+export async function updateUser(id, updateData) {
   const numericId = parseInt(id, 10);
   return prisma.user.update({
     where: { id: numericId },
@@ -103,7 +103,7 @@ async function updateUser(id, updateData) {
 }
 
 /** Update user active/inactive status */
-async function updateUserStatus(id, isActive) {
+export async function updateUserStatus(id, isActive) {
   const numericId = parseInt(id, 10);
   return prisma.user.update({
     where: { id: numericId },
@@ -113,7 +113,7 @@ async function updateUserStatus(id, isActive) {
 }
 
 /** Soft delete a user */
-async function softDeleteUser(id) {
+export async function softDeleteUser(id) {
   const numericId = parseInt(id, 10);
   return prisma.user.update({
     where: { id: numericId },
@@ -122,7 +122,8 @@ async function softDeleteUser(id) {
   });
 }
 
-module.exports = {
+export default {
+  USER_PUBLIC_SELECT,
   getUsers,
   countUsers,
   getUserById,

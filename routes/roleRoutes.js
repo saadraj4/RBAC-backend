@@ -1,13 +1,12 @@
-const { Router } = require("express");
-const roleController = require("../controllers/roleController");
-const authenticate = require("../middleware/authenticate");
-const validate = require("../middleware/validate");
-const {
+import { Router } from "express";
+import { roleController } from "../controllers/index.js";
+import { authenticate, validate } from "../middleware/index.js";
+import {
   createRoleSchema,
   updateRoleSchema,
   roleIdParamSchema,
-} = require("../validators/roleValidator");
-const asyncHandler = require("../utils/asyncHandler");
+} from "../validators/index.js";
+import { asyncHandler } from "../utils/index.js";
 
 const router = Router();
 
@@ -42,4 +41,4 @@ router.delete(
   asyncHandler(roleController.deleteRole)
 );
 
-module.exports = router;
+export default router;

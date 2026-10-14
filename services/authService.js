@@ -1,28 +1,28 @@
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const crypto = require("crypto");
-const prisma = require("../config/db");
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import crypto from "crypto";
+import prisma from "../config/db.js";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 /** Hash a plaintext password */
-async function hashPassword(password) {
-  const rounds = parseInt(process.env.BCRYPT_SALT_ROUNDS, 10);
+export async function hashPassword(password) {
+  const rounds = parseInt(process.env.BCRYPT_SALT_ROUNDS, 10) || 10;
   return bcrypt.hash(password, rounds);
 }
 
 /** Compare plaintext password against hash */
-async function comparePassword(password, hash) {
+export async function comparePassword(password, hash) {
   return bcrypt.compare(password, hash);
 }
 
 /** SHA-256 hash of a string (used for refresh token storage) */
-function sha256(value) {
+export function sha256(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
 }
 
 /** Generate an access token */
-function generateAccessToken(user) {
+export function generateAccessToken(user) {
   return jwt.sign(
     {
       id: user.id,
@@ -34,7 +34,7 @@ function generateAccessToken(user) {
 }
 
 /** Generate a refresh token with a random jti */
-function generateRefreshToken(userId) {
+export function generateRefreshToken(userId) {
   return jwt.sign(
     { id: userId },
     process.env.JWT_REFRESH_SECRET,
@@ -46,7 +46,7 @@ function generateRefreshToken(userId) {
 }
 
 /** Decode a refresh token (verify signature + expiry) */
-function verifyRefreshToken(token) {
+export function verifyRefreshToken(token) {
   return jwt.verify(token, process.env.JWT_REFRESH_SECRET);
 }
 
@@ -54,7 +54,7 @@ function verifyRefreshToken(token) {
  * Persist a refresh token hash in the DB.
  * expiresAt is derived from the JWT's exp claim.
  */
-async function saveRefreshToken(rawToken, userId) {
+export async function saveRefreshToken(rawToken, userId) {
   const decoded = jwt.decode(rawToken);
   const expiresAt = new Date(decoded.exp * 1000);
 
@@ -68,27 +68,25 @@ async function saveRefreshToken(rawToken, userId) {
 }
 
 /** Revoke a single refresh token by its hash */
-async function revokeRefreshTokenByHash(tokenHash) {
+export async function revokeRefreshTokenByHash(tokenHash) {
   await prisma.refreshToken.updateMany({
     where: { tokenHash, revokedAt: null },
     data: { revokedAt: new Date() },
   });
 }
 
-
-
 /**
  * Find a stored refresh token record by its hash.
  * Returns null if not found.
  */
-async function findRefreshToken(tokenHash) {
+export async function findRefreshToken(tokenHash) {
   return prisma.refreshToken.findUnique({ where: { tokenHash } });
 }
 
 // ─── User queries ───────────────────────────────────────────────────────────
 
 /** Find a user by email, including role */
-async function findUserByEmail(email, { includeDeleted = false } = {}) {
+export async function findUserByEmail(email, { includeDeleted = false } = {}) {
   const user = await prisma.user.findUnique({
     where: { email },
     include: { role: true },
@@ -99,7 +97,7 @@ async function findUserByEmail(email, { includeDeleted = false } = {}) {
 }
 
 /** Find a user by ID, including role (without passwordHash) */
-async function findUserById(id, { includeDeleted = false } = {}) {
+export async function findUserById(id, { includeDeleted = false } = {}) {
   const numericId = parseInt(id, 10);
   if (isNaN(numericId)) return null;
 
@@ -113,7 +111,7 @@ async function findUserById(id, { includeDeleted = false } = {}) {
 }
 
 /** Create a new user */
-async function createUser({ name, email, passwordHash, roleId }) {
+export async function createUser({ name, email, passwordHash, roleId }) {
   return prisma.user.create({
     data: { name, email, passwordHash, roleId, isDeleted: false },
     include: { role: true },
@@ -121,9 +119,10 @@ async function createUser({ name, email, passwordHash, roleId }) {
 }
 
 /** Soft delete a user */
-async function softDeleteUser(userId) {
+export async function softDeleteUser(userId) {
+  const numericId = parseInt(userId, 10);
   return prisma.user.update({
-    where: { id: userId },
+    where: { id: numericId },
     data: { isDeleted: true },
     select: {
       id: true,
@@ -136,14 +135,14 @@ async function softDeleteUser(userId) {
 }
 
 /** Find a role by name (excluding soft deleted) */
-async function findRoleByName(name, { includeDeleted = false } = {}) {
+export async function findRoleByName(name, { includeDeleted = false } = {}) {
   const role = await prisma.role.findUnique({ where: { name } });
   if (!role) return null;
   if (!includeDeleted && role.isDeleted) return null;
   return role;
 }
 
-module.exports = {
+export default {
   hashPassword,
   comparePassword,
   sha256,

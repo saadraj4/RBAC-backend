@@ -1,6 +1,6 @@
-const { z } = require("zod");
+import { z } from "zod";
 
-const createUserSchema = z.object({
+export const createUserSchema = z.object({
   name: z
     .string({ required_error: "Name is required." })
     .trim()
@@ -17,7 +17,7 @@ const createUserSchema = z.object({
   isActive: z.boolean().optional().default(true),
 });
 
-const updateUserSchema = z
+export const updateUserSchema = z
   .object({
     name: z.string().trim().min(1, "Name cannot be empty.").optional(),
     roleId: z.coerce.number().int().positive().optional(),
@@ -29,21 +29,21 @@ const updateUserSchema = z
     { message: "At least one valid field must be provided to update." }
   );
 
-const userStatusSchema = z.object({
+export const userStatusSchema = z.object({
   isActive: z.boolean({
     required_error: "isActive (boolean) is required in request body.",
     invalid_type_error: "isActive must be a boolean (true or false).",
   }),
 });
 
-const userIdParamSchema = z.object({
+export const userIdParamSchema = z.object({
   id: z
     .string()
     .regex(/^\d+$/, "User ID must be a valid numeric integer.")
     .transform((val) => parseInt(val, 10)),
 });
 
-module.exports = {
+export default {
   createUserSchema,
   updateUserSchema,
   userStatusSchema,

@@ -1,27 +1,27 @@
-const { z } = require("zod");
+import { z } from "zod";
 
-const createRoleSchema = z.object({
+export const createRoleSchema = z.object({
   name: z
     .string({ required_error: "Role name is required." })
     .trim()
     .min(1, "Role name is required."),
 });
 
-const updateRoleSchema = z.object({
+export const updateRoleSchema = z.object({
   name: z
     .string({ required_error: "Role name is required." })
     .trim()
     .min(1, "Role name is required."),
 });
 
-const roleIdParamSchema = z.object({
+export const roleIdParamSchema = z.object({
   id: z
     .string()
     .regex(/^\d+$/, "Role ID must be a valid numeric integer.")
     .transform((val) => parseInt(val, 10)),
 });
 
-module.exports = {
+export default {
   createRoleSchema,
   updateRoleSchema,
   roleIdParamSchema,

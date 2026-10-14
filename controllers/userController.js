@@ -1,9 +1,8 @@
-const userService = require("../services/userService");
-const roleService = require("../services/roleService");
-const { sendSuccess, sendError, paginate } = require("../utils/response");
+import { userService, roleService } from "../services/index.js";
+import { sendSuccess, sendError, paginate } from "../utils/index.js";
 
 /** POST /api/users/create — create a new user */
-async function createUser(req, res) {
+export async function createUser(req, res) {
   const { name, email, password, role: roleInput, roleId, isActive = true } = req.body;
 
   // Resolve role by roleId or role name (defaults to "user")
@@ -47,7 +46,7 @@ async function createUser(req, res) {
 }
 
 /** GET /api/users/get-all — get users (supports ?page=1&limit=10 or ?all=true and ?isActive=true/false) */
-async function getUsers(req, res) {
+export async function getUsers(req, res) {
   let isActive;
   if (req.query.isActive === "true") isActive = true;
   if (req.query.isActive === "false") isActive = false;
@@ -60,7 +59,7 @@ async function getUsers(req, res) {
 }
 
 /** GET /api/users/get/:id — get user by id */
-async function getUserById(req, res) {
+export async function getUserById(req, res) {
   const { id } = req.params;
 
   const user = await userService.getUserById(id);
@@ -72,7 +71,7 @@ async function getUserById(req, res) {
 }
 
 /** PUT /api/users/update/:id — update user */
-async function updateUser(req, res) {
+export async function updateUser(req, res) {
   const { id } = req.params;
   const { name, roleId, role: roleInput, isActive } = req.body;
 
@@ -112,7 +111,7 @@ async function updateUser(req, res) {
 }
 
 /** PATCH /api/users/status/:id — toggle or set active/inactive status */
-async function updateUserStatus(req, res) {
+export async function updateUserStatus(req, res) {
   const { id } = req.params;
   const { isActive } = req.body;
 
@@ -131,7 +130,7 @@ async function updateUserStatus(req, res) {
 }
 
 /** DELETE /api/users/delete/:id — soft delete user */
-async function deleteUser(req, res) {
+export async function deleteUser(req, res) {
   const { id } = req.params;
 
   const user = await userService.getUserById(id);
@@ -146,7 +145,7 @@ async function deleteUser(req, res) {
   });
 }
 
-module.exports = {
+export default {
   createUser,
   getUsers,
   getUserById,
