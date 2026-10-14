@@ -1,7 +1,7 @@
 const roleService = require("../services/roleService");
 const { sendSuccess, sendError, paginate } = require("../utils/response");
 
-/** GET /api/roles — list all roles (supports ?page=1&limit=10 or ?all=true) */
+/** GET /api/roles/get-all — list all roles (supports ?page=1&limit=10 or ?all=true) */
 async function getRoles(req, res) {
   const totalCount = await roleService.countRoles();
   const { skip, take, pagination } = paginate(req.query, totalCount);
@@ -11,12 +11,9 @@ async function getRoles(req, res) {
   return sendSuccess(res, { data: roles, pagination });
 }
 
-/** GET /api/roles/:id — get single role by id */
+/** GET /api/roles/get/:id — get single role by id */
 async function getRoleById(req, res) {
-  const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) {
-    return sendError(res, { message: "Invalid role ID.", statusCode: 400 });
-  }
+  const { id } = req.params;
 
   const role = await roleService.findRoleById(id);
   if (!role) {
@@ -26,14 +23,9 @@ async function getRoleById(req, res) {
   return sendSuccess(res, { data: role });
 }
 
-/** POST /api/roles — create a new role */
+/** POST /api/roles/create — create a new role */
 async function createRole(req, res) {
   const { name } = req.body;
-
-  if (!name || !name.trim()) {
-    return sendError(res, { message: "Role name is required.", statusCode: 400 });
-  }
-
   const normalized = name.toLowerCase().trim();
 
   // Check if active role exists
@@ -46,17 +38,10 @@ async function createRole(req, res) {
   return sendSuccess(res, { data: role, message: "Role created successfully.", statusCode: 201 });
 }
 
-/** PUT /api/roles/:id — update role */
+/** PUT /api/roles/update/:id — update role */
 async function updateRole(req, res) {
-  const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) {
-    return sendError(res, { message: "Invalid role ID.", statusCode: 400 });
-  }
-
+  const { id } = req.params;
   const { name } = req.body;
-  if (!name || !name.trim()) {
-    return sendError(res, { message: "Role name is required.", statusCode: 400 });
-  }
 
   const role = await roleService.findRoleById(id);
   if (!role) {
@@ -77,12 +62,9 @@ async function updateRole(req, res) {
   return sendSuccess(res, { data: updatedRole, message: "Role updated successfully." });
 }
 
-/** DELETE /api/roles/:id — soft delete role */
+/** DELETE /api/roles/delete/:id — soft delete role */
 async function deleteRole(req, res) {
-  const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) {
-    return sendError(res, { message: "Invalid role ID.", statusCode: 400 });
-  }
+  const { id } = req.params;
 
   const role = await roleService.findRoleById(id);
   if (!role) {

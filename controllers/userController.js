@@ -1,43 +1,21 @@
 const userService = require("../services/userService");
 const roleService = require("../services/roleService");
-const authService = require("../services/authService");
 const { sendSuccess, sendError, paginate } = require("../utils/response");
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** POST /api/users/create — create a new user */
 async function createUser(req, res) {
   const { name, email, password, role: roleInput, roleId, isActive = true } = req.body;
 
-  if (!name || !email || !password) {
-    return sendError(res, {
-      message: "Name, email, and password are required.",
-      statusCode: 400,
-    });
-  }
-
-  if (!EMAIL_RE.test(email)) {
-    return sendError(res, { message: "Invalid email format.", statusCode: 400 });
-  }
-
-  if (password.length < 6) {
-    return sendError(res, {
-      message: "Password must be at least 6 characters.",
-      statusCode: 400,
-    });
-  }
-
   // Resolve role by roleId or role name (defaults to "user")
   let targetRoleId;
   if (roleId !== undefined) {
-    const parsedRoleId = parseInt(roleId, 10);
-    const role = await roleService.findRoleById(parsedRoleId);
+    const role = await roleService.findRoleById(roleId);
     if (!role) {
       return sendError(res, { message: "Role does not exist.", statusCode: 400 });
     }
-    targetRoleId = parsedRoleId;
+    targetRoleId = roleId;
   } else {
-    const roleName = (roleInput).toLowerCase().trim();
+    const roleName = (roleInput || "user").toLowerCase().trim();
     const role = await roleService.findRoleByName(roleName);
     if (!role) {
       return sendError(res, { message: `Role "${roleName}" does not exist.`, statusCode: 400 });
@@ -58,7 +36,7 @@ async function createUser(req, res) {
     email: email.toLowerCase().trim(),
     password,
     roleId: targetRoleId,
-    isActive: typeof isActive === "boolean" ? isActive : true,
+    isActive,
   });
 
   return sendSuccess(res, {
@@ -104,21 +82,17 @@ async function updateUser(req, res) {
   }
 
   const updateData = {};
-  if (name && typeof name === "string" && name.trim()) {
+  if (name && name.trim()) {
     updateData.name = name.trim();
   }
 
   if (roleId !== undefined) {
-    const parsedRoleId = parseInt(roleId, 10);
-    if (isNaN(parsedRoleId)) {
-      return sendError(res, { message: "Invalid role ID.", statusCode: 400 });
-    }
-    const role = await roleService.findRoleById(parsedRoleId);
+    const role = await roleService.findRoleById(roleId);
     if (!role) {
       return sendError(res, { message: "Role does not exist.", statusCode: 400 });
     }
-    updateData.roleId = parsedRoleId;
-  } else if (roleInput && typeof roleInput === "string") {
+    updateData.roleId = roleId;
+  } else if (roleInput && roleInput.trim()) {
     const role = await roleService.findRoleByName(roleInput.toLowerCase().trim());
     if (!role) {
       return sendError(res, { message: `Role "${roleInput}" does not exist.`, statusCode: 400 });
@@ -128,10 +102,6 @@ async function updateUser(req, res) {
 
   if (typeof isActive === "boolean") {
     updateData.isActive = isActive;
-  }
-
-  if (Object.keys(updateData).length === 0) {
-    return sendError(res, { message: "No valid fields provided to update.", statusCode: 400 });
   }
 
   const updatedUser = await userService.updateUser(id, updateData);
@@ -145,13 +115,6 @@ async function updateUser(req, res) {
 async function updateUserStatus(req, res) {
   const { id } = req.params;
   const { isActive } = req.body;
-
-  if (typeof isActive !== "boolean") {
-    return sendError(res, {
-      message: "isActive (boolean) is required in request body.",
-      statusCode: 400,
-    });
-  }
 
   const user = await userService.getUserById(id);
   if (!user) {

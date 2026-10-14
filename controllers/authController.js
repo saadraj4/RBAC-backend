@@ -1,23 +1,9 @@
 const authService = require("../services/authService");
 const { sendSuccess, sendError } = require("../utils/response");
 
-// Simple email regex
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 /** POST /api/auth/register */
 async function register(req, res) {
   const { name, email, password, role: roleName = "user" } = req.body;
-
-  // Validation
-  if (!name || !email || !password) {
-    return sendError(res, { message: "Name, email, and password are required.", statusCode: 400 });
-  }
-  if (!EMAIL_RE.test(email)) {
-    return sendError(res, { message: "Invalid email format.", statusCode: 400 });
-  }
-  if (password.length < 6) {
-    return sendError(res, { message: "Password must be at least 6 characters.", statusCode: 400 });
-  }
 
   // Check role exists
   const role = await authService.findRoleByName(roleName.toLowerCase().trim());
@@ -53,10 +39,6 @@ async function register(req, res) {
 async function login(req, res) {
   const { email, password } = req.body;
 
-  if (!email || !password) {
-    return sendError(res, { message: "Email and password are required.", statusCode: 400 });
-  }
-
   const user = await authService.findUserByEmail(email.toLowerCase().trim());
   if (!user) {
     return sendError(res, { message: "Invalid credentials.", statusCode: 401 });
@@ -91,10 +73,6 @@ async function login(req, res) {
 async function refresh(req, res) {
   const { refreshToken } = req.body;
 
-  if (!refreshToken) {
-    return sendError(res, { message: "Refresh token is required.", statusCode: 400 });
-  }
-
   // Verify JWT signature and expiry
   let decoded;
   try {
@@ -126,7 +104,7 @@ async function refresh(req, res) {
 
   const user = await authService.findUserById(decoded.id);
   if (!user) {
-    return sendError(res, { message: "User not found.", statusCode: 401 });
+    return sendError(res, { message: "User not found or token invalid.", statusCode: 401 });
   }
 
   if (user.isActive === false) {
@@ -162,7 +140,6 @@ async function logout(req, res) {
   // Always return success
   return sendSuccess(res, { message: "Logged out successfully." });
 }
-
 
 /** GET /api/auth/me (protected) */
 async function me(req, res) {

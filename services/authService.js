@@ -100,8 +100,11 @@ async function findUserByEmail(email, { includeDeleted = false } = {}) {
 
 /** Find a user by ID, including role (without passwordHash) */
 async function findUserById(id, { includeDeleted = false } = {}) {
+  const numericId = parseInt(id, 10);
+  if (isNaN(numericId)) return null;
+
   const user = await prisma.user.findUnique({
-    where: { id },
+    where: { id: numericId },
     include: { role: true },
   });
   if (!user) return null;

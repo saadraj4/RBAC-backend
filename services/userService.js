@@ -49,8 +49,11 @@ async function countUsers({ includeDeleted = false, isActive } = {}) {
 
 /** Get single user by ID */
 async function getUserById(id, { includeDeleted = false } = {}) {
+  const numericId = parseInt(id, 10);
+  if (isNaN(numericId)) return null;
+
   const user = await prisma.user.findUnique({
-    where: { id },
+    where: { id: numericId },
     select: USER_PUBLIC_SELECT,
   });
 
@@ -91,8 +94,9 @@ async function createUser({ name, email, password, roleId, isActive = true }) {
 
 /** Update user details (name, roleId, isActive) */
 async function updateUser(id, updateData) {
+  const numericId = parseInt(id, 10);
   return prisma.user.update({
-    where: { id },
+    where: { id: numericId },
     data: updateData,
     select: USER_PUBLIC_SELECT,
   });
@@ -100,8 +104,9 @@ async function updateUser(id, updateData) {
 
 /** Update user active/inactive status */
 async function updateUserStatus(id, isActive) {
+  const numericId = parseInt(id, 10);
   return prisma.user.update({
-    where: { id },
+    where: { id: numericId },
     data: { isActive },
     select: USER_PUBLIC_SELECT,
   });
@@ -109,8 +114,9 @@ async function updateUserStatus(id, isActive) {
 
 /** Soft delete a user */
 async function softDeleteUser(id) {
+  const numericId = parseInt(id, 10);
   return prisma.user.update({
-    where: { id },
+    where: { id: numericId },
     data: { isDeleted: true, isActive: false },
     select: USER_PUBLIC_SELECT,
   });
