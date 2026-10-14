@@ -5,7 +5,7 @@ import { sendError } from "../utils/index.js";
  * Supports passing a ZodSchema directly (defaults to validating req.body)
  * or passing an object specifying targets: { body, params, query }.
  */
-export default function validate(schema, source = "body") {
+export function validate(schema, source = "body") {
   return (req, res, next) => {
     // 1. If schema is a Zod schema object with safeParse
     if (schema && typeof schema.safeParse === "function") {
@@ -50,3 +50,5 @@ export default function validate(schema, source = "body") {
     return next();
   };
 }
+
+export default validate;

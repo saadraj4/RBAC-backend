@@ -134,8 +134,9 @@ Express Route (e.g., POST /api/auth/register)
 ## 5. Security & Best Practices Summary
 
 1. **Zod Validation Middleware (`middleware/validate.js`):** Controllers se pehle request sanitize hoti hai. Ghalat data database tak kabhi nahi pohanchta.
-2. **Safe Integer ID Casting:** `User.id` aur `Role.id` integer hain. Zod aur Services layer me `parseInt(id, 10)` add kiya gaya hai taake Prisma type error (`Argument id: Expected Int, provided String`) na aye.
-3. **Password Hashing (Bcrypt):** Salt rounds ke sath secure hashing.
-4. **Token Rotation & Hashing at Rest:** Refresh tokens DB me SHA-256 hash me save hote hain aur har refresh par purana token revoke ho jata hai.
-5. **Soft Delete (`isDeleted`):** Accidental data deletion se bachao aur relational data intact rehta hai.
-6. **Centralized Error Handling:** Global middleware unhandled errors ko capture karke `500` status deta hai baghair server crash kiye.
+2. **PostgreSQL Connection Pooling (`pg.Pool` & `@prisma/adapter-pg`):** Prisma ko raw `pg.Pool` ke sath jora gaya hai. Connections pool me reuse hote hain aur server health check (`/api/health`) par pool stats (`total`, `idle`, `waiting`) monitor kiye ja sakte hain.
+3. **Safe Integer ID Casting:** `User.id` aur `Role.id` integer hain. Zod aur Services layer me `parseInt(id, 10)` add kiya gaya hai taake Prisma type error (`Argument id: Expected Int, provided String`) na aye.
+4. **Password Hashing (Bcrypt):** Salt rounds ke sath secure hashing.
+5. **Token Rotation & Hashing at Rest:** Refresh tokens DB me SHA-256 hash me save hote hain aur har refresh par purana token revoke ho jata hai.
+6. **Soft Delete (`isDeleted`):** Accidental data deletion se bachao aur relational data intact rehta hai.
+7. **Centralized Error Handling:** Global middleware unhandled errors ko capture karke `500` status deta hai baghair server crash kiye.

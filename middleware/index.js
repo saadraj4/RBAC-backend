@@ -1,8 +1,2 @@
-import authenticate from "./authenticate.js";
-import validate from "./validate.js";
-
-export { authenticate, validate };
-export default {
-  authenticate,
-  validate,
-};
+export * from "./authenticate.js";
+export * from "./validate.js";

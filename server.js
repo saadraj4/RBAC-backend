@@ -1,7 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import { prisma, validateEnv } from "./config/index.js";
+import { prisma, pool, validateEnv } from "./config/index.js";
 import { sendError } from "./utils/index.js";
 import apiRouter from "./routes/index.js";
 
@@ -19,7 +19,15 @@ app.use("/api", apiRouter);
 
 // ─── Health check ───────────────────────────────────────────────────────────
 app.get("/api/health", (_req, res) => {
-  res.json({ success: true, message: "Server is running" });
+  res.json({
+    success: true,
+    message: "Server is running",
+    pool: {
+      total: pool.totalCount,
+      idle: pool.idleCount,
+      waiting: pool.waitingCount,
+    },
+  });
 });
 
 // ─── 404 handler ────────────────────────────────────────────────────────────
@@ -44,10 +52,12 @@ app.listen(PORT, () => {
 // Graceful shutdown
 process.on("SIGINT", async () => {
   await prisma.$disconnect();
+  await pool.end();
   process.exit(0);
 });
 
 process.on("SIGTERM", async () => {
   await prisma.$disconnect();
+  await pool.end();
   process.exit(0);
 });

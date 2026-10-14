@@ -5,7 +5,7 @@ import { sendError } from "../utils/index.js";
  * Authenticate middleware — verifies the access token from the Authorization header.
  * Sets req.user = { id, role: { id, name } } on success.
  */
-export default function authenticate(req, res, next) {
+export function authenticate(req, res, next) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -40,3 +40,5 @@ export default function authenticate(req, res, next) {
     });
   }
 }
+
+export default authenticate;

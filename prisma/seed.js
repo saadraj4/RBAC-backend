@@ -1,8 +1,6 @@
 import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
-
-const prisma = new PrismaClient();
+import prisma, { pool } from "../config/db.js";
 
 const DEFAULT_ROLES = ["admin", "manager", "user"];
 
@@ -53,4 +51,7 @@ main()
     console.error("Seed failed:", e);
     process.exit(1);
   })
-  .finally(() => prisma.$disconnect());
+  .finally(async () => {
+    await prisma.$disconnect();
+    await pool.end();
+  });
