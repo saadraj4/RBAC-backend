@@ -13,7 +13,7 @@ const roleRoutes = require("./routes/roleRoutes");
 const userRoutes = require("./routes/userRoutes");
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT;
 
 // ─── Global middleware ──────────────────────────────────────────────────────
 app.use(cors());
