@@ -1,15 +1,19 @@
 import bcrypt from "bcrypt";
-import prisma from "../config/db.js";
+import { prisma } from "../config/db.js";
 
 // Reusable user select object (excludes passwordHash)
 export const USER_PUBLIC_SELECT = {
   id: true,
   name: true,
   email: true,
-  role: {
+  userRoles: {
     select: {
-      id: true,
-      name: true,
+      role: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
     },
   },
   isActive: true,
@@ -18,13 +22,21 @@ export const USER_PUBLIC_SELECT = {
   updatedAt: true,
 };
 
+/** Normalize user object so that userRoles becomes a clean roles array: [{ id, name }, ...] */
+export function formatUser(user) {
+  if (!user) return null;
+  const { userRoles, ...rest } = user;
+  const roles = userRoles ? userRoles.map((ur) => ur.role) : [];
+  return { ...rest, roles };
+}
+
 /** Get users with pagination and active/deleted filtering */
 export async function getUsers({ skip, take, includeDeleted = false, isActive } = {}) {
   const where = {};
   if (!includeDeleted) where.isDeleted = false;
   if (typeof isActive === "boolean") where.isActive = isActive;
 
-  const [users, totalCount] = await Promise.all([
+  const [rawUsers, totalCount] = await Promise.all([
     prisma.user.findMany({
       where,
       skip,
@@ -35,7 +47,7 @@ export async function getUsers({ skip, take, includeDeleted = false, isActive } 
     prisma.user.count({ where }),
   ]);
 
-  return { users, totalCount };
+  return { users: rawUsers.map(formatUser), totalCount };
 }
 
 /** Count total active users */
@@ -59,77 +71,107 @@ export async function getUserById(id, { includeDeleted = false } = {}) {
 
   if (!user) return null;
   if (!includeDeleted && user.isDeleted) return null;
-  return user;
+  return formatUser(user);
 }
 
 /** Find user by email */
 export async function getUserByEmail(email, { includeDeleted = true } = {}) {
   const user = await prisma.user.findUnique({
     where: { email },
-    include: { role: true },
+    include: {
+      userRoles: {
+        include: { role: true },
+      },
+    },
   });
 
   if (!user) return null;
   if (!includeDeleted && user.isDeleted) return null;
-  return user;
+
+  const { userRoles, ...rest } = user;
+  return { ...rest, roles: userRoles ? userRoles.map((ur) => ur.role) : [] };
 }
 
-/** Create a new user (with password hashing) */
-export async function createUser({ name, email, password, roleId, isActive = true }) {
+/** Create a new user with multiple roles (inside transaction) */
+export async function createUser({
+  name,
+  email,
+  password,
+  roleIds = [],
+  isActive = true,
+}) {
   const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS, 10) || 10;
   const passwordHash = await bcrypt.hash(password, saltRounds);
 
-  return prisma.user.create({
-    data: {
-      name,
-      email,
-      passwordHash,
-      roleId,
-      isActive,
-      isDeleted: false,
-    },
-    select: USER_PUBLIC_SELECT,
+  return prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: {
+        name,
+        email,
+        passwordHash,
+        isActive,
+        isDeleted: false,
+        userRoles: {
+          create: roleIds.map((roleId) => ({ roleId })),
+        },
+      },
+      select: USER_PUBLIC_SELECT,
+    });
+
+    return formatUser(user);
   });
 }
 
-/** Update user details (name, roleId, isActive) */
+/** Update user details (name, roleIds, isActive) inside a transaction */
 export async function updateUser(id, updateData) {
   const numericId = parseInt(id, 10);
-  return prisma.user.update({
-    where: { id: numericId },
-    data: updateData,
-    select: USER_PUBLIC_SELECT,
+  const { roleIds, ...fieldsToUpdate } = updateData;
+
+  return prisma.$transaction(async (tx) => {
+    if (roleIds !== undefined && Array.isArray(roleIds)) {
+      // Replace existing roles with new role set
+      await tx.userRole.deleteMany({ where: { userId: numericId } });
+      if (roleIds.length > 0) {
+        await tx.userRole.createMany({
+          data: roleIds.map((roleId) => ({ userId: numericId, roleId })),
+        });
+      }
+    }
+
+    if (Object.keys(fieldsToUpdate).length > 0) {
+      await tx.user.update({
+        where: { id: numericId },
+        data: fieldsToUpdate,
+      });
+    }
+
+    const updated = await tx.user.findUnique({
+      where: { id: numericId },
+      select: USER_PUBLIC_SELECT,
+    });
+
+    return formatUser(updated);
   });
 }
 
 /** Update user active/inactive status */
 export async function updateUserStatus(id, isActive) {
   const numericId = parseInt(id, 10);
-  return prisma.user.update({
+  const user = await prisma.user.update({
     where: { id: numericId },
     data: { isActive },
     select: USER_PUBLIC_SELECT,
   });
+  return formatUser(user);
 }
 
 /** Soft delete a user */
 export async function softDeleteUser(id) {
   const numericId = parseInt(id, 10);
-  return prisma.user.update({
+  const user = await prisma.user.update({
     where: { id: numericId },
     data: { isDeleted: true, isActive: false },
     select: USER_PUBLIC_SELECT,
   });
+  return formatUser(user);
 }
-
-export default {
-  USER_PUBLIC_SELECT,
-  getUsers,
-  countUsers,
-  getUserById,
-  getUserByEmail,
-  createUser,
-  updateUser,
-  updateUserStatus,
-  softDeleteUser,
-};

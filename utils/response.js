@@ -72,9 +72,3 @@ export function paginate(query, totalCount) {
     meta: paginationInfo,
   };
 }
-
-export default {
-  sendSuccess,
-  sendError,
-  paginate,
-};

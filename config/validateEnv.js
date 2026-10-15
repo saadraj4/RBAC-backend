@@ -20,5 +20,3 @@ export function validateEnv() {
     process.exit(1);
   }
 }
-
-export default validateEnv;

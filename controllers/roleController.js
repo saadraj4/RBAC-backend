@@ -1,5 +1,6 @@
 import { roleService } from "../services/index.js";
-import { sendSuccess, sendError, paginate } from "../utils/index.js";
+import { sendSuccess, paginate } from "../utils/index.js";
+import { NotFoundError, ConflictError } from "../errors/index.js";
 
 /** GET /api/roles/get-all — list all roles (supports ?page=1&limit=10 or ?all=true) */
 export async function getRoles(req, res) {
@@ -17,7 +18,7 @@ export async function getRoleById(req, res) {
 
   const role = await roleService.findRoleById(id);
   if (!role) {
-    return sendError(res, { message: "Role not found.", statusCode: 404 });
+    throw new NotFoundError("Role not found.");
   }
 
   return sendSuccess(res, { data: role });
@@ -31,7 +32,7 @@ export async function createRole(req, res) {
   // Check if active role exists
   const activeRole = await roleService.findRoleByName(normalized);
   if (activeRole) {
-    return sendError(res, { message: `Role "${normalized}" already exists.`, statusCode: 409 });
+    throw new ConflictError(`Role "${normalized}" already exists.`);
   }
 
   const role = await roleService.createRole(normalized);
@@ -45,7 +46,7 @@ export async function updateRole(req, res) {
 
   const role = await roleService.findRoleById(id);
   if (!role) {
-    return sendError(res, { message: "Role not found.", statusCode: 404 });
+    throw new NotFoundError("Role not found.");
   }
 
   const normalized = name.toLowerCase().trim();
@@ -54,7 +55,7 @@ export async function updateRole(req, res) {
   if (normalized !== role.name) {
     const existingWithSameName = await roleService.findRoleByName(normalized, { includeDeleted: true });
     if (existingWithSameName && existingWithSameName.id !== id) {
-      return sendError(res, { message: `Role "${normalized}" already exists.`, statusCode: 409 });
+      throw new ConflictError(`Role "${normalized}" already exists.`);
     }
   }
 
@@ -68,7 +69,7 @@ export async function deleteRole(req, res) {
 
   const role = await roleService.findRoleById(id);
   if (!role) {
-    return sendError(res, { message: "Role not found.", statusCode: 404 });
+    throw new NotFoundError("Role not found.");
   }
 
   const softDeletedRole = await roleService.softDeleteRole(id);
@@ -77,11 +78,3 @@ export async function deleteRole(req, res) {
     message: `Role "${role.name}" soft deleted successfully.`,
   });
 }
-
-export default {
-  getRoles,
-  getRoleById,
-  createRole,
-  updateRole,
-  deleteRole,
-};

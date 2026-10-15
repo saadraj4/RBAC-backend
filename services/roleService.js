@@ -1,4 +1,4 @@
-import prisma from "../config/db.js";
+import { prisma } from "../config/db.js";
 
 /** Get all roles (paginated or all, excluding soft deleted by default) */
 export async function getRoles({ skip, take, includeDeleted = false } = {}) {
@@ -32,12 +32,28 @@ export async function findRoleById(id, { includeDeleted = false } = {}) {
   return role;
 }
 
+/** Find multiple roles by array of IDs */
+export async function findRolesByIds(ids, { includeDeleted = false } = {}) {
+  const numericIds = ids.map((id) => parseInt(id, 10)).filter((id) => !isNaN(id));
+  const where = { id: { in: numericIds } };
+  if (!includeDeleted) where.isDeleted = false;
+  return prisma.role.findMany({ where });
+}
+
 /** Find a role by name */
 export async function findRoleByName(name, { includeDeleted = false } = {}) {
   const role = await prisma.role.findUnique({ where: { name } });
   if (!role) return null;
   if (!includeDeleted && role.isDeleted) return null;
   return role;
+}
+
+/** Find multiple roles by array of names */
+export async function findRolesByNames(names, { includeDeleted = false } = {}) {
+  const normalizedNames = names.map((n) => n.toLowerCase().trim());
+  const where = { name: { in: normalizedNames } };
+  if (!includeDeleted) where.isDeleted = false;
+  return prisma.role.findMany({ where });
 }
 
 /** Create or reactivate a role */
@@ -77,13 +93,3 @@ export async function softDeleteRole(id) {
     data: { isDeleted: true },
   });
 }
-
-export default {
-  getRoles,
-  countRoles,
-  findRoleById,
-  findRoleByName,
-  createRole,
-  updateRole,
-  softDeleteRole,
-};

@@ -1,40 +1,52 @@
 import { userService, roleService } from "../services/index.js";
-import { sendSuccess, sendError, paginate } from "../utils/index.js";
+import { sendSuccess, paginate } from "../utils/index.js";
+import {
+  NotFoundError,
+  ConflictError,
+  BadRequestError,
+} from "../errors/index.js";
 
 /** POST /api/users/create — create a new user */
 export async function createUser(req, res) {
-  const { name, email, password, role: roleInput, roleId, isActive = true } = req.body;
+  const { name, email, password, roleIds: inputRoleIds, roles: inputRoles, isActive = true } = req.body;
 
-  // Resolve role by roleId or role name (defaults to "user")
-  let targetRoleId;
-  if (roleId !== undefined) {
-    const role = await roleService.findRoleById(roleId);
-    if (!role) {
-      return sendError(res, { message: "Role does not exist.", statusCode: 400 });
+  // 1. Resolve role IDs
+  let targetRoleIds = [];
+  if (inputRoleIds && inputRoleIds.length > 0) {
+    const foundRoles = await roleService.findRolesByIds(inputRoleIds);
+    if (foundRoles.length !== inputRoleIds.length) {
+      throw new BadRequestError("One or more specified role IDs do not exist.");
     }
-    targetRoleId = roleId;
+    targetRoleIds = foundRoles.map((r) => r.id);
+  } else if (inputRoles && inputRoles.length > 0) {
+    const foundRoles = await roleService.findRolesByNames(inputRoles);
+    if (foundRoles.length !== inputRoles.length) {
+      const foundNames = foundRoles.map((r) => r.name);
+      const missing = inputRoles.filter(
+        (r) => !foundNames.includes(r.toLowerCase().trim())
+      );
+      throw new BadRequestError(`Role(s) not found: ${missing.join(", ")}`);
+    }
+    targetRoleIds = foundRoles.map((r) => r.id);
   } else {
-    const roleName = (roleInput || "user").toLowerCase().trim();
-    const role = await roleService.findRoleByName(roleName);
-    if (!role) {
-      return sendError(res, { message: `Role "${roleName}" does not exist.`, statusCode: 400 });
-    }
-    targetRoleId = role.id;
+    const defaultRole = await roleService.findRoleByName("user");
+    if (defaultRole) targetRoleIds = [defaultRole.id];
   }
 
-  // Check duplicate email
+  // 2. Check duplicate email
   const existingUser = await userService.getUserByEmail(email.toLowerCase().trim(), {
     includeDeleted: true,
   });
   if (existingUser) {
-    return sendError(res, { message: "Email is already registered.", statusCode: 409 });
+    throw new ConflictError("Email is already registered.");
   }
 
+  // 3. Create user
   const user = await userService.createUser({
     name: name.trim(),
     email: email.toLowerCase().trim(),
     password,
-    roleId: targetRoleId,
+    roleIds: targetRoleIds,
     isActive,
   });
 
@@ -64,7 +76,7 @@ export async function getUserById(req, res) {
 
   const user = await userService.getUserById(id);
   if (!user) {
-    return sendError(res, { message: "User not found.", statusCode: 404 });
+    throw new NotFoundError("User not found.");
   }
 
   return sendSuccess(res, { data: user });
@@ -73,11 +85,11 @@ export async function getUserById(req, res) {
 /** PUT /api/users/update/:id — update user */
 export async function updateUser(req, res) {
   const { id } = req.params;
-  const { name, roleId, role: roleInput, isActive } = req.body;
+  const { name, roleId, roleIds: inputRoleIds, role, roles: inputRoles, isActive } = req.body;
 
   const user = await userService.getUserById(id);
   if (!user) {
-    return sendError(res, { message: "User not found.", statusCode: 404 });
+    throw new NotFoundError("User not found.");
   }
 
   const updateData = {};
@@ -85,18 +97,26 @@ export async function updateUser(req, res) {
     updateData.name = name.trim();
   }
 
-  if (roleId !== undefined) {
-    const role = await roleService.findRoleById(roleId);
-    if (!role) {
-      return sendError(res, { message: "Role does not exist.", statusCode: 400 });
+  // Resolve updated role IDs if provided
+  const combinedIds = inputRoleIds || (roleId ? [roleId] : undefined);
+  const combinedNames = inputRoles || (role ? [role] : undefined);
+
+  if (combinedIds && combinedIds.length > 0) {
+    const foundRoles = await roleService.findRolesByIds(combinedIds);
+    if (foundRoles.length !== combinedIds.length) {
+      throw new BadRequestError("One or more specified role IDs do not exist.");
     }
-    updateData.roleId = roleId;
-  } else if (roleInput && roleInput.trim()) {
-    const role = await roleService.findRoleByName(roleInput.toLowerCase().trim());
-    if (!role) {
-      return sendError(res, { message: `Role "${roleInput}" does not exist.`, statusCode: 400 });
+    updateData.roleIds = foundRoles.map((r) => r.id);
+  } else if (combinedNames && combinedNames.length > 0) {
+    const foundRoles = await roleService.findRolesByNames(combinedNames);
+    if (foundRoles.length !== combinedNames.length) {
+      const foundNames = foundRoles.map((r) => r.name);
+      const missing = combinedNames.filter(
+        (r) => !foundNames.includes(r.toLowerCase().trim())
+      );
+      throw new BadRequestError(`Role(s) not found: ${missing.join(", ")}`);
     }
-    updateData.roleId = role.id;
+    updateData.roleIds = foundRoles.map((r) => r.id);
   }
 
   if (typeof isActive === "boolean") {
@@ -117,7 +137,7 @@ export async function updateUserStatus(req, res) {
 
   const user = await userService.getUserById(id);
   if (!user) {
-    return sendError(res, { message: "User not found.", statusCode: 404 });
+    throw new NotFoundError("User not found.");
   }
 
   const updatedUser = await userService.updateUserStatus(id, isActive);
@@ -135,7 +155,7 @@ export async function deleteUser(req, res) {
 
   const user = await userService.getUserById(id);
   if (!user) {
-    return sendError(res, { message: "User not found.", statusCode: 404 });
+    throw new NotFoundError("User not found.");
   }
 
   const softDeletedUser = await userService.softDeleteUser(id);
@@ -144,12 +164,3 @@ export async function deleteUser(req, res) {
     message: `User "${user.name}" soft deleted successfully.`,
   });
 }
-
-export default {
-  createUser,
-  getUsers,
-  getUserById,
-  updateUser,
-  updateUserStatus,
-  deleteUser,
-};

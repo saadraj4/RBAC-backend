@@ -1,6 +1,6 @@
 import "dotenv/config";
 import bcrypt from "bcrypt";
-import prisma, { pool } from "../config/db.js";
+import { prisma, pool } from "../config/db.js";
 
 const DEFAULT_ROLES = ["admin", "manager", "user"];
 
@@ -26,7 +26,6 @@ async function main() {
   const adminUser = await prisma.user.upsert({
     where: { email: adminEmail },
     update: {
-      roleId: roles.admin.id,
       passwordHash,
       isActive: true,
       isDeleted: false,
@@ -35,13 +34,28 @@ async function main() {
       name: "Super Admin",
       email: adminEmail,
       passwordHash,
-      roleId: roles.admin.id,
       isActive: true,
       isDeleted: false,
     },
   });
 
+  // 3. Assign admin role to Super Admin via UserRole join table
+  await prisma.userRole.upsert({
+    where: {
+      userId_roleId: {
+        userId: adminUser.id,
+        roleId: roles.admin.id,
+      },
+    },
+    update: {},
+    create: {
+      userId: adminUser.id,
+      roleId: roles.admin.id,
+    },
+  });
+
   console.log(`✔ Default Admin User upserted: ${adminUser.email}`);
+  console.log(`  Role:     admin`);
   console.log(`  Email:    ${adminEmail}`);
   console.log(`  Password: ${adminPassword}`);
 }

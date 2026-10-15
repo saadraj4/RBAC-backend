@@ -1,7 +1,9 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import { prisma, pool, validateEnv } from "./config/index.js";
+import helmet from "helmet";
+import { prisma, pool, validateEnv, corsOptions } from "./config/index.js";
+import { generalLimiter } from "./middleware/index.js";
 import { sendError } from "./utils/index.js";
 import apiRouter from "./routes/index.js";
 
@@ -10,12 +12,13 @@ validateEnv();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ─── Global middleware ──────────────────────────────────────────────────────
-app.use(cors());
+// ─── Security & Global Middleware ───────────────────────────────────────────
+app.use(helmet());
+app.use(cors(corsOptions));
 app.use(express.json());
 
-// ─── Routes ─────────────────────────────────────────────────────────────────
-app.use("/api", apiRouter);
+// ─── API Routes with General Rate Limiting ──────────────────────────────────
+app.use("/api", generalLimiter, apiRouter);
 
 // ─── Health check ───────────────────────────────────────────────────────────
 app.get("/api/health", (_req, res) => {
@@ -35,10 +38,19 @@ app.use((_req, res) => {
   sendError(res, { message: "Route not found.", statusCode: 404 });
 });
 
-// ─── Centralized error handler ──────────────────────────────────────────────
+// ─── Centralized error handler (Handles AppError & Unhandled Errors) ─────────
 app.use((err, _req, res, _next) => {
+  // Operational / Domain AppError
+  if (err.statusCode && err.statusCode < 500) {
+    return sendError(res, {
+      message: err.message,
+      statusCode: err.statusCode,
+      code: err.code || null,
+    });
+  }
+
   console.error("Unhandled error:", err);
-  sendError(res, {
+  return sendError(res, {
     message: "Internal server error.",
     statusCode: 500,
   });

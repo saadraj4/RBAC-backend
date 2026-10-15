@@ -33,15 +33,20 @@ RBAC-backend/
 ├── config/
 │   ├── db.js                 # Singleton Prisma Client instance
 │   ├── validateEnv.js        # Startup environment variables validation (Fail-fast)
+│   ├── cors.js               # Dynamic CORS allowlist parser from .env
 │   └── index.js              # Barrel export for config
 ├── controllers/
 │   ├── authController.js     # Register, Login, Refresh, Logout, Me
 │   ├── roleController.js     # Role CRUD operations & soft-delete
 │   ├── userController.js     # User CRUD operations, status toggle, soft-delete
 │   └── index.js              # Barrel export for all controllers
+├── errors/
+│   ├── AppError.js           # Domain AppError classes (BadRequest, NotFound, etc.)
+│   └── index.js              # Barrel export for errors
 ├── middleware/
 │   ├── authenticate.js       # JWT Access Token verification middleware
 │   ├── validate.js           # Reusable Zod validation middleware (Route level)
+│   ├── rateLimiter.js        # General & Auth rate limiters (express-rate-limit)
 │   └── index.js              # Barrel export for middleware
 ├── prisma/
 │   ├── schema.prisma         # Database models (Role, User, RefreshToken)
@@ -133,10 +138,13 @@ Express Route (e.g., POST /api/auth/register)
 
 ## 5. Security & Best Practices Summary
 
-1. **Zod Validation Middleware (`middleware/validate.js`):** Controllers se pehle request sanitize hoti hai. Ghalat data database tak kabhi nahi pohanchta.
-2. **PostgreSQL Connection Pooling (`pg.Pool` & `@prisma/adapter-pg`):** Prisma ko raw `pg.Pool` ke sath jora gaya hai. Connections pool me reuse hote hain aur server health check (`/api/health`) par pool stats (`total`, `idle`, `waiting`) monitor kiye ja sakte hain.
-3. **Safe Integer ID Casting:** `User.id` aur `Role.id` integer hain. Zod aur Services layer me `parseInt(id, 10)` add kiya gaya hai taake Prisma type error (`Argument id: Expected Int, provided String`) na aye.
-4. **Password Hashing (Bcrypt):** Salt rounds ke sath secure hashing.
-5. **Token Rotation & Hashing at Rest:** Refresh tokens DB me SHA-256 hash me save hote hain aur har refresh par purana token revoke ho jata hai.
-6. **Soft Delete (`isDeleted`):** Accidental data deletion se bachao aur relational data intact rehta hai.
-7. **Centralized Error Handling:** Global middleware unhandled errors ko capture karke `500` status deta hai baghair server crash kiye.
+1. **Multiple Roles per User (`UserRole` Junction Model):** Aik user ke pass multiple roles (e.g. `admin`, `manager`, `user`) ho sakte hain. Database me explicit `UserRole` table lagaya gaya hai with composite primary key `@@id([userId, roleId])`.
+2. **Database Performance Indexing (2A):** `User` par `@@index([isDeleted, isActive])` aur `@@index([createdAt(sort: Desc)])`, `RefreshToken` par `@@index([userId])` aur `@@index([expiresAt])`, aur `Role` par `@@index([isDeleted])` lagaye gaye hain taake baray datasets par queries lightning fast hon.
+3. **Custom Domain Error Classes (3):** `AppError`, `NotFoundError`, `ConflictError`, `BadRequestError`, `ForbiddenError`, `UnauthorizedError` banaye gaye hain. Services aur controllers direct errors throw karte hain aur centralized error handler status codes aur codes automatically manage karta hai.
+4. **Database Transactions (4):** Critical database operations jaise Refresh Token Rotation aur User Creation with multiple roles ko `prisma.$transaction` me wrap kiya gaya hai taake atomicity (All-or-Nothing) guarantee ho.
+5. **Production Hardening & Configurable Rate Limiting (5):** `helmet()` ke zariye HTTP headers secure kiye gaye hain. Rate limiting ke parameters (`RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX_GENERAL`, `RATE_LIMIT_MAX_AUTH`) `.env` se dynamically control hote hain. Auth endpoints par brute-force attacks block kiye gaye hain.
+6. **Pure Named Exports Architecture:** Redundant dual exports (`export default`) khatam kar ke pure named exports standardize kiye gaye hain jo barrel files (`index.js`) ke sath perfectly integrate hote hain.
+7. **Zod Validation Middleware (`middleware/validate.js`):** Controllers se pehle request sanitize hoti hai. Ghalat data database tak kabhi nahi pohanchta.
+8. **PostgreSQL Connection Pooling (`pg.Pool` & `@prisma/adapter-pg`):** Prisma ko raw `pg.Pool` ke sath jora gaya hai. Connections pool me reuse hote hain aur server health check (`/api/health`) par pool stats (`total`, `idle`, `waiting`) monitor kiye ja sakte hain.
+9. **Token Rotation & Hashing at Rest:** Refresh tokens DB me SHA-256 hash me save hote hain aur har refresh par purana token revoke ho jata hai.
+10. **Soft Delete (`isDeleted`):** Accidental data deletion se bachao aur relational data intact rehta hai.

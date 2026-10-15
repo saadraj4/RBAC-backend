@@ -1,27 +1,50 @@
 import { z } from "zod";
 
-export const createUserSchema = z.object({
-  name: z
-    .string({ required_error: "Name is required." })
-    .trim()
-    .min(1, "Name cannot be empty."),
-  email: z
-    .string({ required_error: "Email is required." })
-    .trim()
-    .email("Invalid email format."),
-  password: z
-    .string({ required_error: "Password is required." })
-    .min(6, "Password must be at least 6 characters."),
-  role: z.string().trim().optional(),
-  roleId: z.coerce.number().int().positive().optional(),
-  isActive: z.boolean().optional().default(true),
-});
+export const createUserSchema = z
+  .object({
+    name: z
+      .string({ required_error: "Name is required." })
+      .trim()
+      .min(1, "Name cannot be empty."),
+    email: z
+      .string({ required_error: "Email is required." })
+      .trim()
+      .email("Invalid email format."),
+    password: z
+      .string({ required_error: "Password is required." })
+      .min(6, "Password must be at least 6 characters."),
+    role: z.string().trim().optional(),
+    roles: z.array(z.string().trim()).optional(),
+    roleId: z.coerce.number().int().positive().optional(),
+    roleIds: z.array(z.coerce.number().int().positive()).optional(),
+    isActive: z.boolean().optional().default(true),
+  })
+  .transform((data) => {
+    // Collect role IDs or role names
+    let roleIds = data.roleIds || (data.roleId ? [data.roleId] : undefined);
+    let roles = data.roles || (data.role ? [data.role] : undefined);
+
+    if (!roleIds && !roles) {
+      roles = ["user"];
+    }
+
+    return {
+      name: data.name,
+      email: data.email,
+      password: data.password,
+      roleIds,
+      roles,
+      isActive: data.isActive,
+    };
+  });
 
 export const updateUserSchema = z
   .object({
     name: z.string().trim().min(1, "Name cannot be empty.").optional(),
     roleId: z.coerce.number().int().positive().optional(),
+    roleIds: z.array(z.coerce.number().int().positive()).optional(),
     role: z.string().trim().min(1).optional(),
+    roles: z.array(z.string().trim().min(1)).optional(),
     isActive: z.boolean().optional(),
   })
   .refine(
@@ -42,10 +65,3 @@ export const userIdParamSchema = z.object({
     .regex(/^\d+$/, "User ID must be a valid numeric integer.")
     .transform((val) => parseInt(val, 10)),
 });
-
-export default {
-  createUserSchema,
-  updateUserSchema,
-  userStatusSchema,
-  userIdParamSchema,
-};

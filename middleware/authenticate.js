@@ -3,7 +3,7 @@ import { sendError } from "../utils/index.js";
 
 /**
  * Authenticate middleware — verifies the access token from the Authorization header.
- * Sets req.user = { id, role: { id, name } } on success.
+ * Sets req.user = { id, roles: [{ id, name }, ...] } on success.
  */
 export function authenticate(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -22,7 +22,7 @@ export function authenticate(req, res, next) {
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
     req.user = {
       id: decoded.id,
-      role: decoded.role, // { id, name }
+      roles: decoded.roles || (decoded.role ? [decoded.role] : []),
     };
     next();
   } catch (err) {
@@ -40,5 +40,3 @@ export function authenticate(req, res, next) {
     });
   }
 }
-
-export default authenticate;

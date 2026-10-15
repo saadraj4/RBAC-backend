@@ -50,5 +50,3 @@ export function validate(schema, source = "body") {
     return next();
   };
 }
-
-export default validate;

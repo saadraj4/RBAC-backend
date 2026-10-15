@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authController } from "../controllers/index.js";
-import { authenticate, validate } from "../middleware/index.js";
+import { authenticate, validate, authLimiter } from "../middleware/index.js";
 import {
   registerSchema,
   loginSchema,
@@ -13,12 +13,14 @@ const router = Router();
 
 router.post(
   "/register",
+  authLimiter,
   validate(registerSchema),
   asyncHandler(authController.register)
 );
 
 router.post(
   "/login",
+  authLimiter,
   validate(loginSchema),
   asyncHandler(authController.login)
 );

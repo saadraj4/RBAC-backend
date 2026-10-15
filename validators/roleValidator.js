@@ -20,9 +20,3 @@ export const roleIdParamSchema = z.object({
     .regex(/^\d+$/, "Role ID must be a valid numeric integer.")
     .transform((val) => parseInt(val, 10)),
 });
-
-export default {
-  createRoleSchema,
-  updateRoleSchema,
-  roleIdParamSchema,
-};
